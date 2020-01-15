@@ -2,39 +2,50 @@
 
 This aims to be a complete angular development environment in a single container.
 
+## Prerequisites
+
+You will need a reasonably recent docker installation. I have personally tested the instructions below on ubuntu 18.04 with a stock docker install, and on Docker Desktop for Mac. Should you be able to get it running somewhere else as well with some modifications: Pull requests are welcome! :-)
+
+## Using `docker-compose`
+
+In this example, will be using docker-compose in order to keep the commands needed as concise as possible. So, create a new directory for your project and create one in your newly created directory. Below is an example `docker-compose.yml` file:
+
+```docker-compose
+# your-new-app/docker-compose.yml
+version: "3.4"
+services:
+  angular:
+    container_name: angular
+    image: holkerveen/angular-dev
+    volumes:
+      - ./:/app
+    ports:
+      - 4200:4200
+    # Run the main process in the container as a non-root user.
+    user: $UID
+```
+
+The `user` key might be handy because it will make sure ownership of all created files lies with yourself. It needs a `.env` file registering your user id though.
+
+```dotenv
+# Your UID may be different depending on your local setup
+UID=1000
+```
+
 ## Creating a new project using the container
 
 ```shell script
-docker run --rm -it \
-  -u `id -u` \
-  -v `pwd`:/app \
-  holkerveen/angular-dev ng new your-angular-app
+docker-compose run --rm angular ng new --skip-git --directory . your-new-app
 ```
 
-When you run the command above, a fresh angular project will be created in the `your-angular-app` directory.
+When you run the command above, a fresh angular project will be created in the `your-new-app` directory. We are skipping the git install because our container will not have a proper git configuration. The `--directory` sets the install dir to the current directory.
 
-The `-u` option makes your container run its process with your uid. This switch is recommended so that any files created
-are owned by the current user (you).
+## Running your project
 
-We mount the current working directory under `/app` with the `-v` command line option. This is where our container expects your sources to be.
-
-## Running an existing project
+Now that our project has been created, we can run the development server:
 
 ```shell script
-cd your-angular-app &&
-docker run --rm -it \
-  --init \
-  -u `id -u` \
-  -v `pwd`:/app \
-  -p 4200:4200 \
-  holkerveen/angular-dev ng serve --host 0.0.0.0
+docker-compose up
 ```
 
-There are a few notable changes to the installation command:
-
-The `--init` flat enables an `init` system for containers. This ensures system signals are properly forwarded to the foreground process. In short, this enables stopping the server with `Ctrl-C` will work as usual.
-
-Angular serves its development at port 4200 by default, so we expose that on our host with the `-p` option.
-
-Angular-cli itself by default serves its ap on the local loopback interface (`localhost`). We add the --host option to serve the app to the container's external interface.
-
+Open your browser at http://localhost:4200 to confirm everyting is working.
